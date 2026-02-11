@@ -1,38 +1,52 @@
 import React, { useState } from "react";
-import { loginUser } from "../api";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 
 export default function Login() {
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [loading, setLoading] = useState(false); // ✅ FIXED: added loading state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const { login } = useAuth();
   const navigate = useNavigate();
+  const googleLogin = () => {
+  window.location.href = "http://localhost:8000/api/auth/google/login";
+};
 
   async function submit(e) {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await loginUser(form);
+      // 🔥 OAuth2 requires form-encoded data
+      const formData = new URLSearchParams();
+      formData.append("username", email); // OAuth2 uses "username"
+      formData.append("password", password);
 
-      if (!res?.access_token) {
-        alert("Login failed: No token received");
-        setLoading(false);
-        return;
-      }
-
-      // ✅ Save user + token in AuthContext & localStorage
-      login(
-        { name: res.user.name, email: res.user.email },
-        res.access_token
+      const res = await axios.post(
+        "http://localhost:8000/api/auth/login",
+        formData,
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
       );
 
-      setLoading(false);
-      navigate("/chat");
+      if (!res.data?.access_token) {
+        throw new Error("No token received");
+      }
 
+      // ✅ Save user + token
+      login(res.data.access_token, res.data.user);
+
+
+
+      navigate("/");
     } catch (err) {
-      alert(err?.message || "Something went wrong");
+      alert(err.response?.data?.detail || "Invalid credentials");
+    } finally {
       setLoading(false);
     }
   }
@@ -45,8 +59,8 @@ export default function Login() {
         <input
           className="border p-3 rounded-lg w-full mb-3"
           placeholder="Email"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
         />
 
@@ -54,8 +68,8 @@ export default function Login() {
           className="border p-3 rounded-lg w-full mb-6"
           type="password"
           placeholder="Password"
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           required
         />
 
@@ -65,6 +79,12 @@ export default function Login() {
           className="btn-primary w-full"
         >
           {loading ? "Logging in..." : "Login"}
+        </button>
+        <button
+          onClick={googleLogin}
+          className="btn-primary w-full mt-4"
+        >
+          Continue with Google
         </button>
       </form>
     </div>

@@ -1,54 +1,120 @@
 const API_BASE = "http://localhost:8000";
 
-// Generic API request helper
-async function apiRequest(endpoint, method = "GET", body = null) {
-  const token = localStorage.getItem("emowell_token"); 
-  console.log("📤 Sending request to:", endpoint);
-  console.log("🔑 Using token:", token);
+/* ---------------------------
+   Core request helper
+---------------------------- */
+export async function apiRequest(endpoint, options = {}) {
+  const token = localStorage.getItem("emowell_token");
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method,
+  const config = {
+    method: options.method || "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }), // ✅ only attach if exists
+      ...(options.headers || {}),
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
-    body: body ? JSON.stringify(body) : null,
-  });
+    ...(options.body && { body: options.body }),
+  };
 
-  let data;
+  const res = await fetch(`${API_BASE}${endpoint}`, config);
+
+  let data = null;
   try {
-    data = await res.json();  // ✅ avoids crash if response is not JSON
-  } catch {
-    data = null;
-  }
+    data = await res.json();
+  } catch {}
 
   if (res.status === 401) {
-    console.error("❌ Unauthorized! Token invalid or expired.");
+    console.error("❌ Unauthorized. Clearing session.");
     localStorage.removeItem("emowell_token");
-    window.location.replace("/login"); // ✅ safer redirect
-    return;
+    localStorage.removeItem("emowell_user");
+    window.location.replace("/login");
+    throw new Error("Session expired");
   }
 
   if (!res.ok) {
-    console.error("❌ API Error:", data);
-    throw new Error(data?.detail || "Something went wrong");
+    throw new Error(data?.detail || "Request failed");
   }
 
   return data;
 }
 
-// Auth APIs
-export const registerUser = (data) => apiRequest("/api/auth/register", "POST", data);
-export const loginUser = (data) => apiRequest("/api/auth/login", "POST", data);
+/* ---------------------------
+   AUTH
+---------------------------- */
 
-// Chat API — Make sure to send { message: "your text" }
+// ✅ REGISTER
+export const registerUser = (data) =>
+  apiRequest("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+// ✅ LOGIN (OAuth2 form)
+export const loginUser = async ({ email, password }) => {
+  const form = new URLSearchParams();
+  form.append("username", email);
+  form.append("password", password);
+
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: form.toString(),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data?.detail || "Login failed");
+  }
+
+  localStorage.setItem("emowell_token", data.access_token);
+  localStorage.setItem("emowell_user", JSON.stringify(data.user));
+
+  return data;
+};
+
+// ✅ LOGOUT
+export const logoutUser = async () => {
+  await apiRequest("/api/auth/logout", { method: "POST" });
+  localStorage.removeItem("emowell_token");
+  localStorage.removeItem("emowell_user");
+};
+
+// ✅ REFRESH TOKEN
+export const refreshToken = async () => {
+  const res = await apiRequest("/api/auth/refresh", { method: "POST" });
+  localStorage.setItem("emowell_token", res.access_token);
+  return res.access_token;
+};
+
+/* ---------------------------
+   CHAT
+---------------------------- */
 export const sendChatMessage = (message) =>
-  apiRequest("/api/chat/send", "POST", { message });
+  apiRequest("/api/chat/send", {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
 
-// Mood API
-export const submitMood = (data) => apiRequest("/api/mood/checkin", "POST", data);
+/* ---------------------------
+   MOOD
+---------------------------- */
+export const submitMood = (data) =>
+  apiRequest("/api/mood/checkin", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
-// Contact API
-export const sendContactMessage = (data) => apiRequest("/api/contact", "POST", data);
-export const getMoodTrends = () => apiRequest("/api/mood/trends", "GET");
+export const getMoodTrends = () =>
+  apiRequest("/api/mood/trends");
 
+/* ---------------------------
+   CONTACT
+---------------------------- */
+export const sendContactMessage = (data) =>
+  apiRequest("/api/contact", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });

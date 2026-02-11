@@ -1,27 +1,36 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from pathlib import Path
-import os
+
 from .auth import auth_router
 from .chat import chat_router
 from .mood import mood_router
 from .contact import contact_router
+from .database import engine, Base
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from .limiter import limiter
+from .auth import auth_router
 
+# Load .env
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-MONGO_URL = os.getenv("MONGO_URL")
-DB_NAME = os.getenv("DB_NAME", "emowell_db")
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
-
-if not MONGO_URL:
-    raise RuntimeError("❌ MONGO_URL missing in .env")
-
-client = AsyncIOMotorClient(MONGO_URL)
-
 app = FastAPI(title="Emowell — Emotional Wellbeing API")
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+app.add_exception_handler(
+    RateLimitExceeded,
+    _rate_limit_exceeded_handler
+)
 
+app.include_router(auth_router)
+
+
+# -------------------------
+# CORS
+# -------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -30,17 +39,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# -------------------------
+# DATABASE INIT
+# -------------------------
 @app.on_event("startup")
-async def startup():
-    app.state.db = client[DB_NAME]
+def on_startup():
+    # Create tables if not exist
+    Base.metadata.create_all(bind=engine)
 
-@app.on_event("shutdown")
-async def shutdown():
-    client.close()
-
-# Routes
+# -------------------------
+# ROUTES
+# -------------------------
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(mood_router)
 app.include_router(contact_router)
-

@@ -1,37 +1,54 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
+import { logoutUser } from "../api";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("emowell_user");
-    const storedToken = localStorage.getItem("emowell_token");
-
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("emowell_user"));
+    } catch {
+      return null;
     }
-  }, []);
+  });
 
-  const login = (userData, token) => {
-    localStorage.setItem("emowell_user", JSON.stringify(userData));
-    localStorage.removeItem("emowell_token");
-    localStorage.setItem("emowell_token", token);
+  const [token, setToken] = useState(() =>
+    localStorage.getItem("emowell_token")
+  );
+
+  const login = (accessToken, userData) => {
     setUser(userData);
+    setToken(accessToken);
+
+    localStorage.setItem("emowell_token", accessToken);
+    localStorage.setItem("emowell_user", JSON.stringify(userData));
+
+    window.location.href = "/";
   };
 
-  const logout = () => {
-    localStorage.removeItem("emowell_user");
-    localStorage.removeItem("emowell_token");
+  const logout = async () => {
+    try {
+      await logoutUser();
+    } catch {
+      console.warn("Logout API failed, clearing session anyway");
+    }
+
     setUser(null);
+    setToken(null);
+
+    localStorage.removeItem("emowell_token");
+    localStorage.removeItem("emowell_user");
+
+    window.location.href = "/login";
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  return useContext(AuthContext);
+}

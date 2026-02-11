@@ -1,7 +1,5 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from "framer-motion"
-
 
 function FeatureCard({icon, title, children}) {
   return (
@@ -23,14 +21,9 @@ export default function Home(){
           </div>
         </div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="huge-hero text-6xl md:text-[96px] mb-6"
-        >
+        <h1 className="huge-hero text-6xl md:text-[96px] mb-6">
           Your Emotional Well-Being Companion
-        </motion.h1>
+        </h1>
 
         <p className="max-w-3xl mx-auto text-[#6b21a8]/80 mb-8">
           A safe, compassionate space where you can share your feelings, track your mood, and receive emotional support whenever you need it.
@@ -43,21 +36,21 @@ export default function Home(){
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}>
+        <Link to="/chat">
           <FeatureCard icon={<svg width="28" height="28" viewBox="0 0 24 24" className="text-[#6b21a8]"><path fill="none" stroke="#6b21a8" strokeWidth="1.6"strokeLinecap="round" strokeLinejoin="round" className="shrink-0" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>} title="AI-Powered Chat">
             Talk to our compassionate AI chatbot that understands your emotions and provides supportive, non-judgmental responses.
           </FeatureCard>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}>
+        </Link>
+        <div>
           <FeatureCard icon={<svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 20l16-16" stroke="#6b21a8" strokeWidth="1.6" fill="none"/></svg>} title="Mood Tracking">
               Daily mood check-ins and visual trends help you understand your emotional patterns and identify what impacts your well-being.
             </FeatureCard>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}>
+        </div>
+        <div>
           <FeatureCard icon={<svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2l7 4v6c0 5-7 10-7 10s-7-5-7-10V6z" stroke="#6b21a8" strokeWidth="1.6" fill="none"/></svg>} title="Crisis Support">
             Immediate access to crisis helplines and resources when you need urgent support. Your safety is our priority.
           </FeatureCard>
-        </motion.div>
+        </div>
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-24">
