@@ -1,4 +1,9 @@
-from fastapi import Request
+from .database import SessionLocal
+from sqlalchemy.orm import Session
 
-async def get_db(request: Request):
-    return request.app.state.db
+def get_db() -> Session:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

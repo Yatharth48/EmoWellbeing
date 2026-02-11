@@ -10,10 +10,7 @@ import Login from "./pages/Login"
 import Register from "./pages/Register"
 import Profile from "./pages/Profile";
 import MoodTrends from "./pages/MoodTrends";
-
-
-
-
+import OAuthSuccess from "./pages/OAuthSuccess";
 
 export default function App(){
   return (
@@ -29,6 +26,7 @@ export default function App(){
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/mood/trends" element={<MoodTrends />} />
+          <Route path="/oauth-success" element={<OAuthSuccess />} />
         </Routes>
       </main>
       <Footer />
